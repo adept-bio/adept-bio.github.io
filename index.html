@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#24124a">
+  <meta name="description" content="ADePT predicts spatial gene expression from histology with adaptive depth: a learned halting router decides, for each spot, how many updates it receives.">
+  <meta property="og:title" content="ADePT: Learning When to Stop"/>
+  <meta property="og:description" content="Adaptive depth for spatial gene expression prediction from histology."/>
+  <meta property="og:url" content="https://adept-bio.github.io/"/>
+  <meta property="og:image" content="https://adept-bio.github.io/static/images/depth_map_benefit.png"/>
+  <link rel="canonical" href="https://adept-bio.github.io/">
+  <meta name="twitter:card" content="summary_large_image">
+  <title>ADePT: Learning When to Stop. Adaptive Depth for Spatial Gene Expression Prediction from Histology</title>
+  <link href="https://fonts.googleapis.com/css?family=Google+Sans:400,500,700|Noto+Sans:400,600,700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="static/css/bulma.min.css">
+  <link rel="stylesheet" href="static/css/fontawesome.all.min.css">
+  <link rel="stylesheet" href="static/css/index.css">
+  <link rel="stylesheet" href="static/css/adept.css">
+  <script defer src="static/js/fontawesome.all.min.js"></script>
+</head>
+<body>
+
+<nav class="ad-nav" aria-label="Sections">
+  <div class="inner">
+    <a class="brand" href="#top">ADePT</a>
+    <div class="links">
+      <a href="#tldr">TL;DR</a>
+      <a href="#overview">Method</a>
+      <a href="#abstract">Abstract</a>
+      <a href="#contributions">Contributions</a>
+      <a href="#rq1">Accuracy</a>
+      <a href="#rq2">Depth</a>
+      <a href="#rq3">Cost</a>
+      <a href="#rq4">Components</a>
+      <a href="#rq5">Unseen organs</a>
+      <a href="#limits">Limitations</a>
+      <a href="#BibTeX">BibTeX</a>
+      <a href="#team">Team</a>
+    </div>
+  </div>
+</nav>
+
+<section class="hero ad-hero" id="top">
+  <div class="hero-body">
+    <div class="container is-max-desktop has-text-centered">
+
+      <div class="badge-row">
+        <span class="pill review">Under Review</span>
+        <span class="pill"><span class="dot" style="background:#c6dbef"></span>1 update</span>
+        <span class="pill"><span class="dot" style="background:#6baed6"></span>2</span>
+        <span class="pill"><span class="dot" style="background:#3182bd"></span>3</span>
+        <span class="pill"><span class="dot" style="background:#e6550d"></span>4 updates</span>
+      </div>
+
+      <h1 class="title is-1 publication-title">
+        <span class="grad-text">ADePT</span>: Learning When to Stop. Adaptive Depth for Spatial Gene Expression Prediction from Histology
+      </h1>
+      <p class="tagline">Each spot on a tissue slide gets as many network updates as it needs, and no more. A learned router decides when a spot stops.</p>
+
+      <div class="publication-authors">
+        <div class="author-list">
+          <span class="author-block"><a href="https://www.cs.iastate.edu/people/koushik-howlader" target="_blank" rel="noopener">Koushik Howlader</a><sup>1</sup></span>
+          <span class="author-block"><a href="https://www.linkedin.com/in/tirtho-roy-apon/" target="_blank" rel="noopener">Tirtho Roy</a><sup>1</sup></span>
+          <span class="author-block"><a href="https://profiles.stanford.edu/md-tauhidul-islam" target="_blank" rel="noopener">Md Tauhidul Islam</a><sup>2</sup></span>
+          <span class="author-block"><a href="https://www.cs.iastate.edu/people/wei-le" target="_blank" rel="noopener">Wei Le</a><sup>1,&dagger;</sup></span>
+        </div>
+      </div>
+      <div class="affils"><sup>1</sup>Iowa State University, USA &nbsp;&middot;&nbsp; <sup>2</sup>Stanford University, USA</div>
+      <p class="corr"><sup>&dagger;</sup>Corresponding author: <a href="mailto:weile@iastate.edu">weile@iastate.edu</a></p>
+
+      <div class="publication-links">
+        <span class="link-block"><a class="button is-normal is-rounded is-dark is-soon" aria-disabled="true"><span class="icon"><i class="fas fa-file-pdf"></i></span><span>Paper (soon)</span></a></span>
+        <span class="link-block"><a class="button is-normal is-rounded is-dark is-soon" aria-disabled="true"><span class="icon"><i class="fab fa-github"></i></span><span>Code (soon)</span></a></span>
+        <span class="link-block"><a href="#rq1" class="button is-normal is-rounded is-dark"><span class="icon"><i class="fas fa-chart-bar"></i></span><span>Results</span></a></span>
+        <span class="link-block"><a href="#BibTeX" class="button is-normal is-rounded is-dark"><span class="icon"><i class="fas fa-quote-right"></i></span><span>BibTeX</span></a></span>
+      </div>
+
+      <div class="slide-card" aria-label="Interactive depth map of one slide">
+        <div class="slide-top">
+          <span class="kick">One real slide</span>
+          <span class="ttl">Which spots stop, update by update</span>
+          <button type="button" class="ep-play" id="sl-play" aria-label="Play"><i class="fas fa-play"></i></button>
+          <input type="range" min="0" max="4" value="4" id="sl-range" aria-label="Update shown">
+          <span class="n">update <b id="sl-t">4</b> / 4</span>
+        </div>
+        <div id="slide"></div>
+        <p id="sl-note">&nbsp;</p>
+        <div id="sl-key"></div>
+        <p class="slide-src">Skin melanoma slide TENX117, 1,293 spots, 50-gene panel. The depth of every spot is read from the depth-map figure of the paper. White spots are still running.</p>
+      </div>
+
+      <div class="stat-strip">
+        <div class="stat"><div class="num">0.477</div><div class="lbl">mean Pearson correlation, the highest of seven methods</div></div>
+        <div class="stat"><div class="num">56.7%</div><div class="lbl">fewer updates than the same block at fixed depth 4, same accuracy</div></div>
+        <div class="stat"><div class="num">4 / 5</div><div class="lbl">cohorts with lower measured latency, up to 2.22&times;</div></div>
+        <div class="stat"><div class="num">5 / 5</div><div class="lbl">held-out organs where ADePT has the highest mean accuracy</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="tldr">
+  <div class="container reveal">
+    <div class="tldr-card">
+      <div class="hd"><i class="fas fa-lightbulb"></i> The question</div>
+      <div class="bd">
+        <p>Spatial transcriptomics measures gene expression at thousands of spots on a tissue section, but the assay is costly. Recent models therefore predict the expression of each spot from a routine histology image. These models give every spot the same number of network updates.</p>
+        <p>A slide is not uniform. A spot inside a uniform region is easy, and a spot at the boundary between two tissue compartments may need more context. ADePT applies one shared block repeatedly, and after each update a halting router decides, per spot, whether to stop.</p>
+        <p class="key"><b class="k">TL;DR</b>ADePT matches a four-step fixed-depth model with <b>56.7% fewer updates</b>, and has the <b>highest mean accuracy among seven methods</b> on five cohorts.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section is-tint" id="overview">
+  <div class="container reveal">
+    <div class="sec-head"><span class="sec-kicker">Method</span><h2 class="title is-3">Overview of ADePT</h2></div>
+    <div class="chart-card f2-wrap"><div id="fig2"></div></div>
+    <div class="sites">
+      <div class="site" style="--c:#6d3fc8;--k:#fff"><div class="n"><i class="fas fa-layer-group"></i></div><h3>One shared block</h3><p>The same weights are reused at every update, so more depth adds computation but no parameters.</p></div>
+      <div class="site" style="--c:#12a39a;--k:#fff"><div class="n"><i class="fas fa-project-diagram"></i></div><h3>Local and slide context</h3><p>Attention over a fixed number of spatial neighbors plus a pooled slide summary. The cost is linear in the number of spots.</p></div>
+      <div class="site" style="--c:#e0478f;--k:#fff"><div class="n"><i class="fas fa-traffic-light"></i></div><h3>Per-spot halting</h3><p>The router stops a spot from image features alone. A stopped spot still serves as context for its neighbors.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="abstract">
+  <div class="container reveal">
+    <div class="sec-head"><span class="sec-kicker">Paper</span><h2 class="title is-3">Abstract</h2></div>
+    <div class="prose has-text-justified"><p>Spatial transcriptomics measures gene expression at thousands of locations (spots) in a tissue section, but the assay remains costly, so recent methods predict spot-level expression from routine histology images. These methods apply the same number of network updates to every spot, although a slide contains both uniform regions and boundaries between tissue compartments. We propose ADePT, an adaptive-depth network in which a learned halting router decides, for each spot, whether the spot stops or receives another update. To the best of our knowledge, ADePT is the first adaptive-depth method for spatial gene expression prediction from histology. ADePT applies one block with shared weights repeatedly. The block combines attention over a fixed number of spatial neighbors of each spot with a pooled slide summary, so the attention cost is linear and not quadratic in the number of spots. On five HEST-1k cohorts, ADePT attains the highest mean Pearson correlation among seven methods on every gene-panel size and gene-selection strategy. On the 50-gene panel, ADePT executes 56.7% fewer updates, averaged over cohorts, than a separately trained model that applies the same block architecture at a fixed depth of four. ADePT also has the highest mean accuracy on every organ held out of training.</p></div>
+  </div>
+</section>
+
+<section class="section is-tint" id="contributions">
+  <div class="container reveal">
+    <div class="sec-head"><span class="sec-kicker">Contributions</span><h2 class="title is-3">What ADePT adds</h2></div>
+    <div class="contrib">
+      <div class="cc"><span class="id">C1</span><h3>Adaptive depth for spatial expression prediction</h3><p>ADePT applies one shared local&ndash;slide block repeatedly, and a halting router learns how many updates each spot receives.</p></div>
+      <div class="cc"><span class="id">C2</span><h3>Accuracy</h3><p>The highest mean Pearson correlation among seven methods on three gene-panel sizes and two further gene-selection strategies, and the highest mean correlation on every held-out organ, where the gain over the strongest baseline is not significant.</p></div>
+      <div class="cc"><span class="id">C3</span><h3>Efficiency</h3><p>On the 50-gene panel, 57% fewer updates than the same block at a fixed depth of four, with the same mean correlation to three decimals. Measured FLOPs fall on all five cohorts and latency on four.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="rq1">
+  <div class="container reveal">
+    <div class="sec-head"><span class="sec-kicker">Results</span><h2 class="title is-3"><span class="rq">RQ1</span>How accurately does ADePT predict expression?</h2></div>
+    <div class="chart-card">
+      <h3 class="ch-title">Seven methods on five cohorts</h3>
+      <p class="ch-sub">Pick a gene panel and a cohort. The cohorts cycle while the chart is on screen.</p>
+      <div id="chart-acc"></div>
+    </div>
+    <div class="takeaway"><span class="icon"><i class="fas fa-lightbulb"></i></span><span>ADePT is the most accurate method in 14 of the 15 cohort and panel cells, and has the lowest mean MSE and MAE on all three panels. At 50 genes the gain over HyperST is 0.024 PCC (95% interval 0.015 to 0.033).</span></div>
+    <div class="chart-card" style="margin-top:1.2rem">
+      <h3 class="ch-title">Does the predicted map look like the measured one?</h3>
+      <p class="ch-sub">Three marker genes on the held-out skin slide TENX117. Pick a gene and a method; click a picture to enlarge it.</p>
+      <div id="qual"></div>
+    </div>
+    <p class="paper-fig"><button type="button" class="pf-btn" onclick="document.getElementById('pfq').click()"><i class="fas fa-image"></i> See the full figure as printed in the paper</button><img id="pfq" class="zoomable nohint" src="static/images/qualitative_skcm_adept.png" alt="Qualitative spatial expression maps as printed in the paper" hidden></p>
+  </div>
+</section>
+
+<section class="section is-tint" id="rq2">
+  <div class="container reveal">
+    <div class="sec-head"><span class="sec-kicker">Results</span><h2 class="title is-3"><span class="rq">RQ2</span>Same accuracy with fewer updates?</h2></div>
+    <div class="chart-grid two">
+      <div class="chart-card"><h3 class="ch-title">Accuracy against updates per spot</h3><p class="ch-sub">Gray: the same block trained at a fixed depth of 1 to 4. Star: ADePT. 50-gene panel.</p><div id="chart-policy"></div></div>
+      <div class="chart-card"><h3 class="ch-title">ADePT minus fixed depth 4</h3><p class="ch-sub">Change in PCC per cohort, and how many updates ADePT saves.</p><div id="chart-trade"></div></div>
+    </div>
+    <div class="chart-grid two" style="margin-top:1rem">
+      <div class="chart-card"><h3 class="ch-title">Where spots stop, per cohort</h3><p class="ch-sub">Share of test spots by executed depth, with the mean depth on the right. 50-gene panel.</p><div id="chart-dist"></div></div>
+      <div class="chart-card"><h3 class="ch-title">Does the extra depth pay off?</h3><p class="ch-sub">Slide TENX117: drop in error at the executed depth, against stopping after one update.</p><div id="chart-benefit"></div></div>
+    </div>
+    <p class="paper-fig"><button type="button" class="pf-btn" onclick="document.getElementById('pfd').click()"><i class="fas fa-image"></i> See the depth-map figure as printed in the paper</button><img id="pfd" class="zoomable nohint" src="static/images/depth_map_benefit.png" alt="Per-spot depth and its benefit, as printed in the paper" hidden></p>
+    <div class="takeaway"><span class="icon"><i class="fas fa-lightbulb"></i></span><span>On the 50-gene panel both models reach 0.477 mean PCC, and ADePT uses 1.73 updates per spot where the fixed model uses 4. Most IDC and CCRCC spots stop after one update; on PAAD, 70% of spots run all four.</span></div>
+  </div>
+</section>
+
+<section class="section" id="rq3">
+  <div class="container reveal">
+    <div class="sec-head"><span class="sec-kicker">Results</span><h2 class="title is-3"><span class="rq">RQ3</span>Do fewer updates reduce measured cost?</h2></div>
+    <div class="chart-card">
+      <h3 class="ch-title">Fixed depth 4 against ADePT, per slide</h3>
+      <p class="ch-sub">50-gene panel on an NVIDIA A100. Switch between executed updates, GFLOPs and latency.</p>
+      <div id="chart-cost"></div>
+    </div>
+    <div class="takeaway"><span class="icon"><i class="fas fa-lightbulb"></i></span><span>Mean cost falls from 26.8 to 13.8 GFLOPs per slide, and mean latency from 7.0 to 5.1 ms. The speedup is 2.22&times; on CCRCC and 1.56&times; on IDC.</span></div>
+  </div>
+</section>
+
+<section class="section is-tint" id="rq4">
+  <div class="container reveal">
+    <div class="sec-head"><span class="sec-kicker">Results</span><h2 class="title is-3"><span class="rq">RQ4</span>Which components contribute?</h2></div>
+    <div class="chart-card">
+      <h3 class="ch-title">Six ablations</h3>
+      <p class="ch-sub">Each tab removes or replaces one part of ADePT. The tabs cycle while the chart is on screen.</p>
+      <div id="chart-abl"></div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="rq5">
+  <div class="container reveal">
+    <div class="sec-head"><span class="sec-kicker">Results</span><h2 class="title is-3"><span class="rq">RQ5</span>Does ADePT transfer to unseen organs?</h2></div>
+    <div class="chart-card">
+      <h3 class="ch-title">Leave one organ out</h3>
+      <p class="ch-sub">Train on four organs, test on the fifth. 50-gene panel, mean over three seeds.</p>
+      <div id="chart-looo"></div>
+    </div>
+    <div class="takeaway"><span class="icon"><i class="fas fa-lightbulb"></i></span><span>ADePT has the highest mean PCC on every held-out organ (0.366 on average, against 0.354 for TRIPLEX). The gains over HyperST and BLEEP are significant; the gain over TRIPLEX is not.</span></div>
+  </div>
+</section>
+
+<section class="section is-tint" id="limits">
+  <div class="container reveal">
+    <div class="sec-head"><span class="sec-kicker">Read this too</span><h2 class="title is-3">Limitations</h2></div>
+    <div class="limits">
+      <div class="limit"><b>It matches, it does not exceed</b>On average ADePT equals the deepest fixed-depth model in accuracy. The gain is in computation.</div>
+      <div class="limit"><b>Slide-level splits</b>Splits are disjoint by slide, not by patient, so the numbers are not directly comparable with published HEST-Benchmark values.</div>
+      <div class="limit"><b>Five cohorts, frozen encoders</b>The image encoders are not trained, and the evaluation covers five organ cohorts and panels of 50 to 150 genes.</div>
+      <div class="limit"><b>Small slides can be slower</b>On SKCM, the smallest slides, latency rises from 4.7 to 5.5 ms although fewer updates are run.</div>
+      <div class="limit"><b>Hard organs stay hard</b>With the organ held out, accuracy on CCRCC and PRAD stays below 0.11 PCC for every method.</div>
+      <div class="limit"><b>Not every cohort gains</b>On PAAD, ADePT is 0.018 PCC below fixed depth 4 on the 50-gene panel.</div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="BibTeX">
+  <div class="container reveal">
+    <div class="sec-head"><span class="sec-kicker">Cite</span><h2 class="title is-3">BibTeX</h2></div>
+    <p class="bib-status">The manuscript is under review. It is not yet accepted or published.</p>
+    <div class="bib-wrap">
+      <button class="copy-btn" type="button" onclick="navigator.clipboard.writeText(document.getElementById('bibtex').innerText);this.textContent='Copied';"><i class="far fa-copy"></i> Copy</button>
+      <pre><code id="bibtex">@misc{howlader2026adept,
+  title  = {Learning When to Stop: Adaptive Depth for Spatial Gene Expression Prediction from Histology},
+  author = {Howlader, Koushik and Roy, Tirtho and Islam, Md Tauhidul and Le, Wei},
+  year   = {2026},
+  note   = {Under review}
+}</code></pre>
+    </div>
+  </div>
+</section>
+
+<section class="section is-tint" id="team">
+  <div class="container reveal">
+    <div class="sec-head"><span class="sec-kicker">People</span><h2 class="title is-3">Team</h2></div>
+    <div class="team">
+      <div class="member"><a href="https://www.cs.iastate.edu/people/koushik-howlader" target="_blank" rel="noopener"><div class="ph"><img src="static/images/team/Koushik.jpg" alt="Koushik Howlader"></div><div class="nm">Koushik Howlader</div></a><div class="af">Iowa State University</div></div>
+      <div class="member"><a href="https://www.linkedin.com/in/tirtho-roy-apon/" target="_blank" rel="noopener"><div class="ph"><img src="static/images/team/Tirtho.jpg" alt="Tirtho Roy"></div><div class="nm">Tirtho Roy</div></a><div class="af">Iowa State University</div></div>
+      <div class="member"><a href="https://profiles.stanford.edu/md-tauhidul-islam" target="_blank" rel="noopener"><div class="ph"><img src="static/images/team/Tauhidul.jpg" alt="Md Tauhidul Islam"></div><div class="nm">Md Tauhidul Islam</div></a><div class="af">Stanford University</div></div>
+      <div class="member"><a href="https://www.cs.iastate.edu/people/wei-le" target="_blank" rel="noopener"><div class="ph"><img src="static/images/team/Wei.jpg" alt="Wei Le"></div><div class="nm">Wei Le</div></a><div class="af">Iowa State University</div></div>
+    </div>
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="container">
+    <div class="content has-text-centered">
+      <p>This page was built using the <a href="https://github.com/eliahuhorwitz/Academic-project-page-template" target="_blank" rel="noopener">Academic Project Page Template</a>, which was adopted from the <a href="https://nerfies.github.io" target="_blank" rel="noopener">Nerfies</a> project page. This website is licensed under a <a rel="license" href="http://creativecommons.org/licenses/by-sa/4.0/" target="_blank">Creative Commons Attribution-ShareAlike 4.0 International License</a>. The page code is under the MIT License and the numeric results under CC BY 4.0. The slide data come from HEST-1k and keep its terms. Details: <a href="https://github.com/adept-bio/adept-bio.github.io/blob/main/LICENSE.md" target="_blank" rel="noopener">LICENSE.md</a>.</p>
+    </div>
+  </div>
+</footer>
+
+<script src="static/js/data.js"></script>
+<script src="static/js/adept.js"></script>
+</body>
+</html>
